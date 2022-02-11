@@ -1,0 +1,114 @@
+<!doctype html>
+<html>
+
+<head>
+  <style>
+      canvas {
+          border: 1px solid #000000;
+      }
+  </style>
+</head>
+
+<body>
+  <canvas id="point" style="width:300px; height:300px">
+  </canvas>
+  <script id="vertex_shader" type="myshader">
+      // Vertex Shader
+      precision mediump int;
+      precision mediump float;
+      
+      attribute vec2 a_PointVertex;
+      attribute vec3 a_PointColor;
+      
+      varying vec3 color;
+      
+      void main() {
+        gl_Position = vec4(a_PointVertex, 0.0, 1.0);
+        gl_PointSize = 2.0;
+        color = a_PointColor;
+      }
+  </script>
+  <script id="fragment_shader" type="myshader">
+      // Fragment shader
+      precision mediump int;
+      precision mediump float;
+      
+      varying vec3 color;
+      
+      void main() {
+        gl_FragColor = vec4(color, 1.0);
+      }
+      
+  </script>
+  <script type="text/javascript">
+      var pointCanvas = document.getElementById('point'); // 我们的纸
+      var gl = pointCanvas.getContext('webgl', { preserveDrawingBuffer: true }); // 我们的笔
+      // 生成 360 个点，来模拟一个圆
+      var pointCount = 360;
+      var pointData = [];
+      var loop = 0;
+      var alpha = 0; // 注意，这里的 α 单位是弧度，关于这个要温习一下初中数学
+      var step = (2 * Math.PI) / pointCount; // 每一次增加的弧度 (1°)
+      var x, y, _R, _G, _B;
+      for (loop = 0; loop < pointCount; loop++) {
+          alpha = loop * step;
+          x = Math.cos(alpha);
+          y = Math.sin(alpha);
+          pointData.push(x);
+          pointData.push(y);
+          _R = Math.random(); // 随机一个
+          _G = Math.random(); // 随机一个
+          _B = Math.random(); // 随机一个
+          pointData.push(_R);
+          pointData.push(_G);
+          pointData.push(_B);
+      }
+      //
+      var pointArray = new Float32Array(pointData);
+      var buffer_id;
+      buffer_id = gl.createBuffer();//创建存储
+      gl.bindBuffer(gl.ARRAY_BUFFER, buffer_id);//告诉操作的是buffer_id
+      gl.bufferData(gl.ARRAY_BUFFER, pointArray, gl.STATIC_DRAW);//存入数据
+      // 获取顶点着色器
+      var vertex_shader_code = document.getElementById('vertex_shader').textContent;
+      console.log(vertex_shader_code);
+      //createShader()创建一个着色器对象
+      var vertex_shader = gl.createShader(gl.VERTEX_SHADER);
+      //挂载GLSL源代码(vertex_shader, vertex_shader_code) (对象，源码)
+      gl.shaderSource(vertex_shader, vertex_shader_code);
+      //进行着色器的编译
+      gl.compileShader(vertex_shader);
+      //获取片元着色器
+      var fragment_shader_code = document.getElementById('fragment_shader').textContent;
+      var fragment_shader = gl.createShader(gl.FRAGMENT_SHADER);
+      gl.shaderSource(fragment_shader, fragment_shader_code);
+      gl.compileShader(fragment_shader);
+      //program这些组合成一个可用的 WebGL 着色器程序
+      var program = gl.createProgram();
+      //添加一个片段或者顶点着色器。
+      gl.attachShader(program, vertex_shader);
+      gl.attachShader(program, fragment_shader);
+      //链接给定的program
+      gl.linkProgram(program);
+      //将定义好的WebGLProgram 对象添加到当前的渲染状态
+      gl.useProgram(program);
+      //getAttribLocation获取着色器中声明的变量，然后对其进行赋值
+      var a_PointVertex = gl.getAttribLocation(program, 'a_PointVertex');
+      console.log('a_PointVertex', a_PointVertex);
+      //vertexAttribPointer告诉显卡从当前绑定的缓冲区（bindBuffer()指定的缓冲区）中读取顶点数据
+      //(a_PointVertex, 2, gl.FLOAT, false, 5 * 4, 0) 
+      //(指定要修改的顶点属性的索引,指定每个顶点属性的组成数量,指定数组中每个元素的数据类型,当转换为浮点数时是否应该将整数数值归一化到特定的范围,以字节为单位指定连续顶点属性开始之间的偏移量,指定顶点属性数组中第一部分的字节偏移量。必须是类型的字节长度的倍数)
+      gl.vertexAttribPointer(a_PointVertex, 2, gl.FLOAT, false, 5 * 4, 0);
+      //enableVertexAttribArray 指定attribute变量的存储位置
+      gl.enableVertexAttribArray(a_PointVertex);
+      var a_PointColor = gl.getAttribLocation(program, 'a_PointColor');
+      console.log('a_PointColor', a_PointColor);
+      gl.vertexAttribPointer(a_PointColor, 3, gl.FLOAT, false, 5 * 4, 2 * 4);
+      gl.enableVertexAttribArray(a_PointColor);
+      //绘制(gl.POINTS, 0, pointCount) （画什么，从什么地方开始，画几个）
+      gl.drawArrays(gl.POINTS, 0, pointCount);
+  </script>
+
+</body>
+
+</html>
